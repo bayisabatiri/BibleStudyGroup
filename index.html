@@ -1575,32 +1575,55 @@ async function readChapter(){
   const rawChap = document.getElementById('rd-chapters').value.trim();
   if(!rawChap){ ui.readMsg = {type:'err', text:'Please enter a chapter number to read.'}; return render(); }
   const chapter = rawChap.split('-')[0].trim();
-  if(!/^\d+$/.test(chapter)){ ui.readMsg = {type:'err', text:'Please enter a valid chapter number.'}; return render(); }
+  if(!/^\d+$/.test(chapter) || Number(chapter) < 1){ ui.readMsg = {type:'err', text:'Please enter a valid chapter number.'}; return render(); }
   const bookId = BIBLE_BOOK_INDEX[book];
+  if(!bookId){ ui.readMsg = {type:'err', text:'This Bible book could not be identified.'}; return render(); }
+  const language = (currentLang === 'om' || currentLang === 'am') ? currentLang : 'en';
+  const version = language === 'om' ? 'oromo' : (language === 'am' ? 'amhara' : 'kjv');
+  const translationName = language === 'om' ? 'Afaan Oromoo' : (language === 'am' ? 'አማርኛ' : 'King James Version');
   const title = book + ' ' + chapter;
-  showBibleModal(title, '<p class="center muted" style="margin-top:40px">📖<br><br>Loading…</p>');
+  showBibleModal(title, '<p class="center muted" style="margin-top:40px">📖<br><br>Loading Bible verses…</p>');
 
-  const c = await getCachedChapter('kjv', bookId, chapter);
-  if(c && c.html){
-    showBibleModal(title, `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · KJV</span></p>` + c.html);
+  // Each language has its own IndexedDB key, so cached Oromo, Amharic and English chapters never overwrite one another.
+  const cached = await getCachedChapter(version, bookId, chapter);
+  if(cached && cached.html){
+    showBibleModal(title, `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · ${esc(translationName)}</span></p>` + cached.html);
     return;
   }
   try {
-    const res = await fetch(`https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`);
-    if(!res.ok) throw new Error('fail');
-    const data = await res.json();
-    if(!data.verses || !data.verses.length) throw new Error('no verses');
-    const html = data.verses.map(v => `<p><sup>${esc(v.verse)}</sup> ${esc(v.text)}</p>`).join('');
-    await cacheChapter('kjv', bookId, chapter, html, 'King James Version');
-    showBibleModal(data.reference || title,
-      `<p class="center muted tiny" style="margin-bottom:14px;font-weight:600;">King James Version</p>` + html);
+    const url = `https://bible-api-kappa.vercel.app/api/v1/verses/${version}/${bookId}/${chapter}`;
+    let res = await fetch(url);
+    if(!res.ok) throw new Error('Bible API request failed');
+    let data = await res.json();
+    let verses = Array.isArray(data.data) ? data.data : (Array.isArray(data.verses) ? data.verses : []);
+    // Keep the prior English provider as a fallback if the new multilingual service is temporarily unavailable.
+    if((!verses || !verses.length) && language === 'en'){
+      res = await fetch(`https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`);
+      if(!res.ok) throw new Error('English Bible fallback failed');
+      data = await res.json();
+      verses = Array.isArray(data.verses) ? data.verses : [];
+    }
+    if(!verses || !verses.length) throw new Error('No verses returned');
+    const html = verses.map(v => {
+      const num = v.verseNum ?? v.verse ?? '';
+      const text = v.verseText ?? v.text ?? v.content ?? '';
+      return text ? `<p><sup>${esc(num)}</sup> ${esc(text)}</p>` : '';
+    }).filter(Boolean).join('');
+    if(!html) throw new Error('The chapter had no readable verse text');
+    await cacheChapter(version, bookId, chapter, html, translationName);
+    showBibleModal(title, `<p class="center muted tiny" style="margin-bottom:14px;font-weight:600;">${esc(translationName)}</p>` + html);
   } catch(e){
-    const f = await getCachedChapter('kjv', bookId, chapter);
-    if(f && f.html){
-      showBibleModal(title, `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · KJV</span></p>` + f.html);
+    const fallback = await getCachedChapter(version, bookId, chapter);
+    if(fallback && fallback.html){
+      showBibleModal(title, `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · ${esc(translationName)}</span></p>` + fallback.html);
       return;
     }
-    showBibleModal(title, `<div class="center" style="padding:40px 0"><p class="muted" style="font-size:44px">📖</p><p class="small muted">Could not load this chapter right now.</p></div>`);
+    const message = language === 'om'
+      ? 'Afaan Oromoo verses could not be downloaded. Connect to the internet once and try again.'
+      : language === 'am'
+        ? 'የአማርኛ መጽሐፍ ቅዱስ ጥቅሶችን ማምጣት አልተቻለም። ኢንተርኔት አገናኝተው እንደገና ይሞክሩ።'
+        : 'Could not load this chapter. Connect to the internet and try again.';
+    showBibleModal(title, `<div class="center" style="padding:30px 0"><p class="muted" style="font-size:44px">📖</p><p class="small muted">${esc(message)}</p></div>`);
   }
 }
 function logReading(){
