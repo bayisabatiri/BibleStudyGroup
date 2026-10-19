@@ -368,11 +368,14 @@ const firebaseConfig = {
   messagingSenderId: "241966742587",
   appId: "1:241966742587:web:30e7cead67b269d21bf01e"
 };
+
+// ═══ EDIT THIS LINE ═══ Replace with your deployed backend URL
+const BIBLE_API_BASE = 'https://YOUR-BIBLE-API.vercel.app';
+
 const fbApp = initializeApp(firebaseConfig);
 const fbDB = getDatabase(fbApp);
 const fbAuth = getAuth(fbApp);
 
-/* ═══ Sync badge ═══ */
 function showSyncBadge(msg, isError){
   const el = document.getElementById('firebase-status');
   if(!el) return;
@@ -384,7 +387,6 @@ function showSyncBadge(msg, isError){
 }
 window.showSyncBadge = showSyncBadge;
 
-/* ═══ Roles ═══ */
 const ROLE_META = {
   pastor: { label:'🙏 Pastor',          class:'pastor', order:0, admin:true },
   admin:  { label:'👑 Administrator',   class:'admin',  order:1, admin:true },
@@ -399,7 +401,6 @@ function roleOrder(r){ return (ROLE_META[r] && ROLE_META[r].order) ?? 99; }
 function isLeadershipRole(r){ return ['admin','pastor','elder'].includes(r); }
 function canAccessAdmin(r){ return ['admin','pastor'].includes(r); }
 
-/* ═══ IndexedDB Bible cache ═══ */
 let bibleDB = null;
 function openBibleDB(){
   return new Promise(res => {
@@ -438,7 +439,6 @@ async function cacheChapter(v, b, c, html, name){
   } catch(e){ return false; }
 }
 
-/* ═══ Keyboard fix ═══ */
 let isTyping = false, typingTimer = null;
 function markTyping(){ isTyping = true; clearTimeout(typingTimer); typingTimer = setTimeout(() => isTyping = false, 3000); }
 function stopTyping(){ isTyping = false; clearTimeout(typingTimer); }
@@ -455,7 +455,6 @@ document.addEventListener('input', e => {
   if(el && ['INPUT','TEXTAREA'].includes(el.tagName)) markTyping();
 });
 
-/* ═══ Password toggle ═══ */
 function togglePassword(inputId, btn){
   const input = document.getElementById(inputId);
   if(!input) return;
@@ -467,7 +466,6 @@ function togglePassword(inputId, btn){
 }
 window.togglePassword = togglePassword;
 
-/* ═══ Translations ═══ */
 const LANG_KEY = 'bsg-language-v1';
 let currentLang = localStorage.getItem(LANG_KEY) || 'en';
 
@@ -606,7 +604,6 @@ function setLanguage(lang){
 }
 window.setLanguage = setLanguage;
 
-/* ═══ Constants ═══ */
 const DEFAULT_ADMINS = [
   { id:'admin-root-1', fullName:'Admin',  password:'admin123' },
   { id:'admin-root-2', fullName:'Admin2', password:'admin123' },
@@ -618,7 +615,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 const now = () => new Date().toISOString();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').trim().toLowerCase().replace(/\s+/g,' ');
-/* ═══ Formatting helpers ═══ */
+
 function fmtDate(iso){ if(!iso) return '—'; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
 function fmtTime(iso){
   if(!iso) return '—';
@@ -674,19 +671,16 @@ function getFinishedActivities(){
 function dataURLtoBlob(d){ try { const a=d.split(','); const m=a[0].match(/:(.*?);/)[1]; const b=atob(a[1]); let n=b.length; const u=new Uint8Array(n); while(n--) u[n]=b.charCodeAt(n); return new Blob([u],{type:m}); } catch(e){ return null; } }
 function dataURLtoText(d){ try { const p=d.split(','); if(p[0].includes('base64')) return atob(p[1]); return decodeURIComponent(p[1]); } catch(e){ return null; } }
 
-/* ═══ Bible books ═══ */
 const BIBLE_BOOKS = ['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi','Matthew','Mark','Luke','John','Acts','Romans','1 Corinthians','2 Corinthians','Galatians','Ephesians','Philippians','Colossians','1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy','Titus','Philemon','Hebrews','James','1 Peter','2 Peter','1 John','2 John','3 John','Jude','Revelation'];
 const BIBLE_BOOK_IDS = ['GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON','MIC','NAM','HAB','ZEP','HAG','ZEC','MAL','MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'];
 const BIBLE_BOOK_INDEX = Object.fromEntries(BIBLE_BOOKS.map((b,i)=>[b,BIBLE_BOOK_IDS[i]]));
 function bibleBookOptions(){ return BIBLE_BOOKS.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join(''); }
 
-/* ═══ State ═══ */
 let state = { users:[], requests:[], documents:[], readings:[], notes:[], groups:[], notifications:[], homeNotes:[] };
 let session = localStorage.getItem(SESSION) || null;
 let ui = { tab:'home', authTab:'login', authMsg:null, docMsg:null, readMsg:null, noteMsg:null, folderOpen:{}, notifSelectMode:false, notifSelected:{}, qMsg:{}, qOpen:{} };
 const currentUser = () => state.users.find(u => u.id === session) || null;
 
-/* ═══ Modals ═══ */
 let modalAction = null;
 function showConfirm(title, message, onConfirm, confirmText){
   modalAction = onConfirm;
@@ -718,7 +712,6 @@ function showBibleModal(title, content){
 }
 window.hideModal = hideModal; window.confirmAction = confirmAction;
 
-/* ═══ Firebase ═══ */
 function seedAdmins(){
   DEFAULT_ADMINS.forEach(def => {
     if(!state.users.find(u => u.id === def.id)){
@@ -772,7 +765,6 @@ function unreadCount(u){
   return state.notifications.filter(n => n.date > seen && n.actorId !== u.id).length;
 }
 
-/* ═══ UI helpers ═══ */
 function setAuthTab(t){ ui.authTab = t; ui.authMsg = null; render(); }
 function setTab(t){
   ui.tab = t; ui.notifSelectMode = false; ui.notifSelected = {};
@@ -792,7 +784,6 @@ function toggleQOpen(id){
 window.setTab = setTab; window.setAuthTab = setAuthTab;
 window.toggleFolder = toggleFolder; window.toggleQOpen = toggleQOpen;
 
-/* ═══ AUTH ═══ */
 function renderAuth(){
   const t = ui.authTab;
   let body = '';
@@ -892,7 +883,6 @@ function logout(){
 window.doLogin = doLogin; window.doSignup = doSignup; window.doChangePassword = doChangePassword;
 window.logout = logout;
 
-/* ═══ PROFILE ═══ */
 function openMyProfile(){
   const u = currentUser(); if(!u) return;
   document.getElementById('modal-root').innerHTML = `
@@ -981,7 +971,6 @@ window.openMyProfile = openMyProfile; window.handlePhotoUpload = handlePhotoUplo
 window.removeMyPhoto = removeMyPhoto; window.saveMyProfile = saveMyProfile;
 window.logoutFromProfile = logoutFromProfile;
 
-/* ═══ APP SHELL ═══ */
 function renderApp(u){
   const unread = unreadCount(u);
   const pending = state.requests.length;
@@ -1026,23 +1015,17 @@ function renderTab(u){
   }
 }
 
-/* ═══ EXCEL MEMBER TABLE ═══ */
 function renderMemberTable(members, opts){
   opts = opts || {};
   if(!members || !members.length) return '<p class="empty">No members yet.</p>';
-  
-  // Sort: Admins/Pastors first, then everyone else by the order they joined (newest at the bottom)
   const sorted = members.slice().sort((a,b) => {
     const oa = roleOrder(a.role), ob = roleOrder(b.role);
-    // Keep leadership roles (Admin, Pastor) at the top
     if (oa < 2 && ob >= 2) return -1;
     if (oa >= 2 && ob < 2) return 1;
-    // For regular members, sort by join date (oldest first, so newest is at the bottom)
     const dateA = a.joined || '0';
     const dateB = b.joined || '0';
     return dateA.localeCompare(dateB);
   });
-  
   return `
     <div class="excel-wrap">
       <table class="excel-table">
@@ -1074,7 +1057,6 @@ function renderMemberTable(members, opts){
     </div>`;
 }
 
-/* ═══ HOME NOTES ═══ */
 function addHomeNote(){
   const u = currentUser(); if(!u || !canAccessAdmin(u.role)) return alert('Only admins can post notes.');
   const input = document.getElementById('home-note-input');
@@ -1121,7 +1103,6 @@ function saveEditHomeNote(id){
 window.addHomeNote = addHomeNote; window.delHomeNote = delHomeNote;
 window.editHomeNote = editHomeNote; window.saveEditHomeNote = saveEditHomeNote;
 
-/* ═══ ADMIN — Question editor ═══ */
 function renderAdminQuestion(group, activity, q, idx){
   const cnt = answerCount(q);
   return `
@@ -1223,7 +1204,6 @@ function renderAdminActivity(group, activity){
     </div>`;
 }
 
-/* ═══ MEMBER — Question cards ═══ */
 function renderMemberQuestion(group, activity, q, idx){
   const u = currentUser();
   const answers = q.answers || {};
@@ -1302,7 +1282,6 @@ function renderMemberActivity(group, activity){
     </div>`;
 }
 
-/* ═══ GROUPS ═══ */
 function renderGroup(group, adminView){
   const u = currentUser();
   const approved = state.users.filter(x => x.approved);
@@ -1376,7 +1355,6 @@ function renderListOfMembers(removable){
     </div>`;
 }
 
-/* ═══ FINISHED ACTIVITY ═══ */
 function renderFinishedActivityCard(f){
   const creator = f.creatorId ? state.users.find(x => x.id === f.creatorId) : null;
   const qs = f.questions || [];
@@ -1414,7 +1392,6 @@ function renderFinishedActivityCard(f){
     </div>`;
 }
 
-/* ═══ HOME TAB ═══ */
 function homeTab(u){
   const approved = state.users.filter(x => x.approved);
   const totalReadings = state.readings.length;
@@ -1505,7 +1482,6 @@ function homeTab(u){
     </div>`;
 }
 
-/* ═══ READING TAB ═══ */
 function readingTab(u){
   const myReadings = state.readings.filter(r => r.userId === u.id);
   const myNotes = state.notes.filter(n => n.userId === u.id);
@@ -1584,19 +1560,17 @@ async function readChapter(){
   const title = book + ' ' + chapter;
   showBibleModal(title, '<p class="center muted" style="margin-top:40px">📖<br><br>Loading Bible verses…</p>');
 
-  // Each language has its own IndexedDB key, so cached Oromo, Amharic and English chapters never overwrite one another.
   const cached = await getCachedChapter(version, bookId, chapter);
   if(cached && cached.html){
     showBibleModal(title, `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · ${esc(translationName)}</span></p>` + cached.html);
     return;
   }
   try {
-    const url = `https://bible-api-kappa.vercel.app/api/v1/verses/${version}/${bookId}/${chapter}`;
+    const url = `${BIBLE_API_BASE}/api/v1/verses/${version}/${bookId}/${chapter}`;
     let res = await fetch(url);
     if(!res.ok) throw new Error('Bible API request failed');
     let data = await res.json();
     let verses = Array.isArray(data.data) ? data.data : (Array.isArray(data.verses) ? data.verses : []);
-    // Keep the prior English provider as a fallback if the new multilingual service is temporarily unavailable.
     if((!verses || !verses.length) && language === 'en'){
       res = await fetch(`https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`);
       if(!res.ok) throw new Error('English Bible fallback failed');
@@ -1605,7 +1579,6 @@ async function readChapter(){
     }
     if(!verses || !verses.length) throw new Error('No verses returned');
     const html = verses.map((v, index) => {
-      // The Oromo/Amharic/KJV API returns verseNum for the number and verse for the actual verse text.
       const num = v.verseNum ?? v.number ?? v.verse_number ?? (index + 1);
       const text = v.verseText ?? v.text ?? v.content ?? (typeof v.verse === 'string' ? v.verse : '');
       return text ? `<p><sup>${esc(num)}</sup> ${esc(text)}</p>` : '';
@@ -1646,7 +1619,6 @@ function delReading(id){
 window.readChapter = readChapter; window.logReading = logReading; window.delReading = delReading;
 window.saveStandaloneNote = saveStandaloneNote; window.delNote = delNote;
 
-/* ═══ DOCS TAB ═══ */
 function docsTab(u){
   const msg = ui.docMsg ? `<div class="alert ${ui.docMsg.type}">${esc(tr(ui.docMsg.text))}</div>` : '';
   const list = state.documents.length ? state.documents.map(d => {
@@ -1766,7 +1738,6 @@ function delDoc(id){
 window.uploadDoc = uploadDoc; window.downloadDoc = downloadDoc;
 window.openDoc = openDoc; window.previewDoc = previewDoc; window.delDoc = delDoc;
 
-/* ═══ NOTIFS TAB ═══ */
 function notifsTab(u){
   const seen = u.notifSeenAt || '0';
   const isAdmin = canAccessAdmin(u.role);
@@ -1873,7 +1844,6 @@ window.approveFromNotif = approveFromNotif;
 window.rejectFromNotif = rejectFromNotif;
 window.clearNotifs = clearNotifs;
 
-/* ═══ ADMIN TAB ═══ */
 function adminTab(u){
   const requests = state.requests.length ? state.requests.map(r => `
     <div class="list-item">
@@ -2089,7 +2059,6 @@ window.toggleGroupMember = toggleGroupMember;
 window.approveRequest = approveRequest; window.rejectRequest = rejectRequest;
 window.removeMember = removeMember;
 
-/* ═══ RENDER + BOOTSTRAP ═══ */
 function render(){
   const active = document.activeElement;
   const isFocused = active && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
@@ -2122,7 +2091,6 @@ signInAnonymously(fbAuth).catch(err => {
 render();
 </script>
 
-<!-- ═══ OFFLINE SUPPORT (Added — does not affect anything else) ═══ -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(
@@ -2133,7 +2101,6 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('online', () => console.log('✓ Back online'));
 window.addEventListener('offline', () => console.log('⚠ Offline mode'));
 </script>
-<!-- ═══ END OFFLINE SUPPORT ═══ -->
 
 </body>
 </html>
