@@ -1,12 +1,10 @@
 {
-  "id": "./",
   "name": "Bible Study Group",
   "short_name": "Bible Study",
-  "description": "Bible Study Group \u2014 read, share, and grow together.",
+  "description": "Bible Study Group with English, Afaan Oromoo (Kitaaba Woyyuu), and Amharic Bible reading.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#f8f9fb",
   "theme_color": "#dc2626",
   "icons": [
@@ -14,13 +12,13 @@
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }

@@ -1,17 +1,20 @@
-Bible Study Group — APK preparation folder
+BIBLE STUDY GROUP — APK PREPARATION FOLDER
 
-Contents
-- index.html: your original uploaded website file, copied without changing its contents.
-- manifest.json: installable PWA metadata.
-- sw.js: service worker for caching the app shell.
+Included:
+- index.html: original website with Bible verse loading fixed for Afaan Oromoo and Amharic.
+- manifest.json and sw.js: PWA shell for hosting/installing.
 - icons/: app icons.
 
-How to use
-1. Upload the CONTENTS of this folder to the same website folder/root (for example, the GitHub Pages or Netlify publish folder). Keep index.html, manifest.json, sw.js, and icons/ together.
-2. Open the hosted site over HTTPS and test it in Chrome on Android.
-3. To package as an Android APK, use a trusted PWA-to-APK/TWA builder or Android Studio with Bubblewrap, using the public HTTPS website URL.
+Bible verses:
+- English uses bible-api.com (KJV).
+- Afaan Oromoo uses the Oromo endpoint of bible-api-kappa.vercel.app.
+- Amharic uses the Amharic endpoint of bible-api-kappa.vercel.app.
+These two non-English endpoints need internet. Chapters that have been successfully opened are saved in the app's local IndexedDB cache, but the entire Bible is not preloaded for offline use.
 
-Important
-- This folder prepares the website for installation and APK packaging; it does not itself contain a compiled APK.
-- The original HTML references Firebase and external Bible APIs. Online sign-in/data features and uncached Bible content still require internet. Service-worker caching alone does not make the entire app fully offline.
-- For a working installable PWA, the site must be hosted over HTTPS. Test the hosted app before generating the APK.
+To test:
+1. Upload the contents of this folder to your website host (keep the folder structure).
+2. Open the site while connected to the internet.
+3. Sign in, select Afaan Oromoo or አማርኛ, open Reading, choose a book and chapter, and press Read.
+4. If the API provider is temporarily unavailable, try again later.
+
+This is not a compiled APK. Use a PWA-to-APK tool or Android Studio wrapper after hosting the website over HTTPS.

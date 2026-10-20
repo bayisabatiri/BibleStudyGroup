@@ -1596,7 +1596,8 @@ async function readChapter(forceRefresh = false){
   const language = (currentLang === 'om' || currentLang === 'am') ? currentLang : 'en';
   const title = book + ' ' + chapter;
   
-  const versionKey = language === 'en' ? 'kjv' : (language === 'om' ? 'om_qubee' : 'am_amharic');
+  // Use separate cache keys for the actual Oromo/Amharic Bible API.
+  const versionKey = language === 'en' ? 'kjv' : (language === 'om' ? 'oromo-api-v1' : 'amhara-api-v1');
 
   if(!forceRefresh){
       showBibleModal(title, '<p class="center muted" style="margin-top:40px">📖<br><br>Loading…</p>');
@@ -1623,20 +1624,22 @@ async function readChapter(forceRefresh = false){
       }
     }catch(e){ console.warn('[Bible] bible-api.com failed', e); }
   } else {
-    translationName = language === 'om' ? 'Afaan Oromoo' : 'አማርኛ';
-    const wldLangCode = language === 'om' ? 'oro' : 'amh';
-
+    // The old code used unsupported version folders (oro/amh) and therefore
+    // returned no verses. This API exposes Oromo and Amharic using these IDs.
+    translationName = language === 'om' ? 'Afaan Oromoo (Kitaaba Woyyuu)' : 'አማርኛ (መጽሐፍ ቅዱስ)';
+    const apiVersion = language === 'om' ? 'oromo' : 'amhara';
     try {
-      const url = `${WLD_BASE}/${wldLangCode}/books/${bookSlug}/chapters/${chapter}.json`;
-      const res = await fetch(url);
+      const url = `https://bible-api-kappa.vercel.app/api/v1/verses/${apiVersion}/${bookId}/${chapter}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if(res.ok){
         const data = await res.json();
+        // API returns { data: [{ verseNum, verse }] }.
         if(data && Array.isArray(data.data)){
-          verses = data.data.map(v => ({ num: v.verse, text: v.text }));
+          verses = data.data.map(v => ({ num: v.verseNum || v.verse || '', text: v.verse || v.text || '' }));
         }
       }
     } catch(e) {
-      console.warn('[Bible] wldeh CDN failed', e);
+      console.warn(`[Bible] ${apiVersion} Bible API failed`, e);
     }
   }
 
