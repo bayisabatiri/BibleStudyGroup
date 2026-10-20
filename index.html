@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#dc2626">
+<!-- THIS CONNECTS THE MANIFEST -->
 <link rel="manifest" href="manifest.json">
 <title>Bible Study Group</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -369,8 +370,8 @@ const firebaseConfig = {
   appId: "1:241966742587:web:30e7cead67b269d21bf01e"
 };
 
-const HELLOAO_BASE = 'https://bible.helloao.org/api';
 const BIBLE_API_COM = 'https://bible-api.com';
+const WLD_BASE = 'https://cdn.jsdelivr.net/gh/wldeh/bible-api/bibles';
 
 const fbApp = initializeApp(firebaseConfig);
 const fbDB = getDatabase(fbApp);
@@ -406,8 +407,7 @@ function openBibleDB(){
   return new Promise(res => {
     if(bibleDB) return res(bibleDB);
     try {
-      // Bump version to clear broken empty cache
-      const req = indexedDB.open('bsg-bible-cache-v3', 1);
+      const req = indexedDB.open('bsg-bible-cache-v9', 1);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if(!db.objectStoreNames.contains('chapters')) db.createObjectStore('chapters', { keyPath:'key' });
@@ -426,7 +426,7 @@ async function getCachedChapter(v, b, c){
       r.onsuccess = () => {
         const result = r.result;
         if (result && result.html && result.html.replace(/<[^>]+>/g, '').trim() === '') {
-          return res(null); // Ignore empty cached entries
+          return res(null);
         }
         res(result || null);
       };
@@ -618,6 +618,7 @@ function tr(s){
 function setLanguage(lang){
   if(!T[lang]) return;
   currentLang = lang;
+  document.documentElement.lang = lang === 'om' ? 'om' : (lang === 'am' ? 'am' : 'en');
   localStorage.setItem(LANG_KEY, lang);
   render();
 }
@@ -625,12 +626,8 @@ window.setLanguage = setLanguage;
 
 const DEFAULT_ADMINS = [
   { id:'admin-root-1', fullName:'Admin',  password:'admin123' },
-  { id:'admin-root-2', fullName:'Admin1', password:'admin123' },
-  { id:'admin-root-3', fullName:'Admin2', password:'admin123' },
-  { id:'admin-root-4', fullName:'Admin3', password:'admin123' },
-  { id:'admin-root-5', fullName:'Admin4', password:'admin123' },
-  { id:'admin-root-6', fullName:'Admin5', password:'admin123' },
-  { id:'admin-root-7', fullName:'Admin6', password:'admin123' }
+  { id:'admin-root-2', fullName:'Admin2', password:'admin123' },
+  { id:'admin-root-3', fullName:'Admin3', password:'admin123' }
 ];
 const SESSION = 'bsg-session-v17';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -696,7 +693,10 @@ function dataURLtoText(d){ try { const p=d.split(','); if(p[0].includes('base64'
 
 const BIBLE_BOOKS = ['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi','Matthew','Mark','Luke','John','Acts','Romans','1 Corinthians','2 Corinthians','Galatians','Ephesians','Philippians','Colossians','1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy','Titus','Philemon','Hebrews','James','1 Peter','2 Peter','1 John','2 John','3 John','Jude','Revelation'];
 const BIBLE_BOOK_IDS = ['GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON','MIC','NAM','HAB','ZEP','HAG','ZEC','MAL','MAT','MRK','LUK','JHN','ACT','ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM','HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD','REV'];
+const BIBLE_BOOK_SLUGS = ['genesis','exodus','leviticus','numbers','deuteronomy','joshua','judges','ruth','1-samuel','2-samuel','1-kings','2-kings','1-chronicles','2-chronicles','ezra','nehemiah','esther','job','psalms','proverbs','ecclesiastes','song-of-solomon','isaiah','jeremiah','lamentations','ezekiel','daniel','hosea','joel','amos','obadiah','jonah','micah','nahum','habakkuk','zephaniah','haggai','zechariah','malachi','matthew','mark','luke','john','acts','romans','1-corinthians','2-corinthians','galatians','ephesians','philippians','colossians','1-thessalonians','2-thessalonians','1-timothy','2-timothy','titus','philemon','hebrews','james','1-peter','2-peter','1-john','2-john','3-john','jude','revelation'];
 const BIBLE_BOOK_INDEX = Object.fromEntries(BIBLE_BOOKS.map((b,i)=>[b,BIBLE_BOOK_IDS[i]]));
+const BIBLE_BOOK_SLUG_INDEX = Object.fromEntries(BIBLE_BOOKS.map((b,i)=>[b,BIBLE_BOOK_SLUGS[i]]));
+
 function bibleBookOptions(){ return BIBLE_BOOKS.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join(''); }
 
 let state = { users:[], requests:[], documents:[], readings:[], notes:[], groups:[], notifications:[], homeNotes:[] };
@@ -1573,50 +1573,6 @@ function delNote(id){
   showConfirm('Delete Note', 'Delete this note?', () => fbRemove('notes/' + id), 'Delete');
 }
 
-/* ===================================================================
-   BIBLE LOADER - COMMON TRANSLATIONS FIXED
-   =================================================================== */
-async function resolveTranslationId(lang){
-  if(lang === 'en') return { id:'eng_kjv', name:'King James Version' };
-
-  const cacheKey = 'helloao-trans-v2-' + lang;
-  try {
-    const saved = localStorage.getItem(cacheKey);
-    if(saved) return JSON.parse(saved);
-  } catch(e){}
-
-  try {
-    const res = await fetch(`${HELLOAO_BASE}/available_translations.json`);
-    if(res.ok){
-      const data = await res.json();
-      const list = Array.isArray(data.translations) ? data.translations : [];
-      let match = null;
-      
-      if (lang === 'om') {
-        // Look for the standard Macaafa Qulqulluu (Bible Society of Ethiopia) and avoid the 'Waaqayyoo' variant
-        match = list.find(t => t.id === 'ORMBSB' || t.id === 'orm') 
-             || list.find(t => (t.name || '').toLowerCase().includes('macaafa') && !t.name.toLowerCase().includes('waayyuu'))
-             || list.find(t => (t.languageEnglishName || '').toLowerCase().includes('oromo'));
-      } else if (lang === 'am') {
-        // Standard Amharic
-        match = list.find(t => t.id === 'AMHBSB' || t.id === 'amh') 
-             || list.find(t => (t.languageEnglishName || '').toLowerCase().includes('amharic'));
-      }
-
-      if(match){
-        const result = { id: match.id, name: match.name || match.languageEnglishName || lang };
-        try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch(e){}
-        return result;
-      }
-    }
-  } catch(e){ console.warn('[helloao] translation lookup failed', e); }
-
-  // Hardcoded fallbacks based on standard helloao IDs
-  if (lang === 'am') return { id:'AMHBSB', name:'Amharic' };
-  if (lang === 'om') return { id:'ORMBSB', name:'Afaan Oromoo' };
-  return { id: 'eng_kjv', name: 'English' };
-}
-
 async function readChapter(forceRefresh = false){
   const u = currentUser(); if(!u) return;
 
@@ -1631,18 +1587,21 @@ async function readChapter(forceRefresh = false){
   }
 
   const bookId = BIBLE_BOOK_INDEX[book];
-  if(!bookId){
+  const bookSlug = BIBLE_BOOK_SLUG_INDEX[book];
+  
+  if(!bookId || !bookSlug){
     ui.readMsg = {type:'err', text:'This Bible book could not be identified.'};
     return render();
   }
 
   const language = (currentLang === 'om' || currentLang === 'am') ? currentLang : 'en';
   const title = book + ' ' + chapter;
+  
+  const versionKey = language === 'en' ? 'kjv' : (language === 'om' ? 'om_qubee' : 'am_amharic');
 
   if(!forceRefresh){
       showBibleModal(title, '<p class="center muted" style="margin-top:40px">📖<br><br>Loading…</p>');
-      const cacheKey = language === 'en' ? 'kjv' : language;
-      const cached = await getCachedChapter(cacheKey, bookId, chapter);
+      const cached = await getCachedChapter(versionKey, bookId, chapter);
       if(cached && cached.html){
         showBibleModal(title,
           `<p class="center" style="margin-bottom:14px;"><span class="offline-badge">✓ Offline · ${esc(cached.translationName || 'Bible')}</span></p>`
@@ -1655,7 +1614,6 @@ async function readChapter(forceRefresh = false){
 
   let verses = [];
   let translationName = 'King James Version';
-  let versionKey = 'kjv';
 
   if(language === 'en'){
     try{
@@ -1665,29 +1623,54 @@ async function readChapter(forceRefresh = false){
         verses = (data.verses || []).map(v => ({ num: v.verse, text: v.text }));
       }
     }catch(e){ console.warn('[Bible] bible-api.com failed', e); }
-  } else {
-    const trans = await resolveTranslationId(language);
-    translationName = trans.name;
-    versionKey = trans.id;
-    try{
-      const res = await fetch(`${HELLOAO_BASE}/${trans.id}/${bookId}/${chapter}.json`);
-      if(res.ok){
-        const data = await res.json();
-        const content = (data && data.chapter && Array.isArray(data.chapter.content)) ? data.chapter.content : [];
-        verses = content.filter(c => c && c.type === 'verse').map(v => {
-           let txt = '';
-           if (Array.isArray(v.content)) {
-               txt = v.content.map(part => typeof part === 'string' ? part : '').join('').trim();
-           } else if (typeof v.content === 'string') {
-               txt = v.content.trim();
-           }
-           return { num: v.number, text: txt };
+  } else if(language === 'am') {
+    translationName = 'አማርኛ — የአማርኛ መጽሐፍ ቅዱስ';
+    // Load the Amharic/English structured Bible dataset, then cache each chapter locally.
+    try {
+      const dataUrl = 'https://raw.githubusercontent.com/biniama/ethiopic-bible-data/main/minified/bible_am_en.json';
+      const response = await fetch(dataUrl);
+      if(response.ok){
+        const bibleData = await response.json();
+        const books = Array.isArray(bibleData) ? bibleData : (bibleData.books || bibleData.data?.books || []);
+        const bookData = books.find(x => {
+          const candidates = [x.book_short_name_en, x.book_name_en, x.name, x.name_en, x.bookName, x.bookCode, x.code, x.id];
+          return candidates.some(n => String(n || '').toLowerCase() === book.toLowerCase() || String(n || '').toLowerCase() === bookId.toLowerCase());
         });
+        const chapters = bookData?.chapters || [];
+        const chapterData = chapters.find(x => Number(x.chapter ?? x.number) === Number(chapter));
+        const rows = chapterData?.verses || chapterData?.data || [];
+        verses = rows.map(v => ({ num: v.verse ?? v.number, text: typeof v.text === 'string' ? v.text : (v.text?.am || v.text?.amh || '') })).filter(v => v.text);
       }
-    }catch(e){ console.warn('[Bible] helloao failed', e); }
+    } catch(e) { console.warn('[Bible] Amharic dataset failed', e); }
+  } else {
+    translationName = 'Afaan Oromoo';
+    // Discover a real Oromo translation ID rather than assuming that "oro" is a version ID.
+    try {
+      const catalogRes = await fetch(`${WLD_BASE}/bibles.json`);
+      if(catalogRes.ok){
+        const catalog = await catalogRes.json();
+        const entries = Array.isArray(catalog) ? catalog : (catalog.bibles || catalog.versions || catalog.data || []);
+        const candidates = entries.filter(x => {
+          const lang = String(x.language || x.languageCode || x.lang || x.iso || '').toLowerCase();
+          const id = String(x.id || x.version || x.code || '').toLowerCase();
+          const name = String(x.name || x.title || '').toLowerCase();
+          return /^(oro|orm|om)(-|$)/.test(id) || ['oro','orm','om'].includes(lang) || /oromo/.test(name);
+        });
+        const ids = [...new Set(candidates.map(x => x.id || x.version || x.code).filter(Boolean))];
+        for(const versionId of ids){
+          try {
+            const response = await fetch(`${WLD_BASE}/${encodeURIComponent(versionId)}/books/${bookSlug}/chapters/${chapter}.json`);
+            if(!response.ok) continue;
+            const data = await response.json();
+            const rows = Array.isArray(data.data) ? data.data : (Array.isArray(data.verses) ? data.verses : []);
+            const found = rows.map(v => ({num:v.verse ?? v.number, text:v.text})).filter(v => v.text);
+            if(found.length){ verses = found; translationName = candidates.find(x => (x.id || x.version || x.code) === versionId)?.name || 'Afaan Oromoo'; break; }
+          } catch(e) { console.warn('[Bible] Oromo candidate failed', versionId, e); }
+        }
+      }
+    } catch(e) { console.warn('[Bible] Oromo version catalog failed', e); }
   }
 
-  // If we got valid verses with actual text, show and cache them
   if(verses.length > 0 && verses.some(v => v.text)){
     const html = verses.map(v => `<p><sup>${esc(v.num || '')}</sup> ${esc(v.text || '')}</p>`).join('');
     await cacheChapter(versionKey, bookId, chapter, html, translationName);
@@ -1695,7 +1678,6 @@ async function readChapter(forceRefresh = false){
       `<p class="center muted tiny" style="margin-bottom:14px;font-weight:600;">${esc(translationName)}</p>`
       + html);
   } else {
-    // If fetch fails or is empty, try loading stale cache (unless we just forced a refresh)
     const stale = await getCachedChapter(versionKey, bookId, chapter);
     if(stale && stale.html && !forceRefresh){
       showBibleModal(title,
@@ -1703,7 +1685,7 @@ async function readChapter(forceRefresh = false){
         + stale.html);
     } else {
       const message =
-          language === 'om' ? 'Afaan Oromoo verses could not be downloaded. Connect to the internet and try again.'
+          language === 'om' ? 'Afaan Oromoo Bible data could not be found from the connected source. Connect to the internet and try again; if this continues, an authorized Afaan Oromoo Bible data file is needed.'
         : language === 'am' ? 'የአማርኛ መጽሐፍ ቅዱስ ጥቅሶችን ማምጣት አልተቻለም። ኢንተርኔት አገናኝተው እንደገና ይሞክሩ።'
         :                     'Could not load this chapter. Connect to the internet and try again.';
       showBibleModal(title,
@@ -1712,7 +1694,6 @@ async function readChapter(forceRefresh = false){
   }
 }
 window.forceRefreshChapter = () => readChapter(true);
-/* =================================================================== */
 
 function logReading(){
   const u = currentUser(); if(!u) return;
@@ -2205,15 +2186,15 @@ signInAnonymously(fbAuth).catch(err => {
 render();
 </script>
 
+<!-- THIS CONNECTS THE SERVICE WORKER FOR PWA -->
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(
-    () => console.log('✓ Offline support ready'),
-    err => console.warn('Service worker registration failed:', err)
-  );
-}
-window.addEventListener('online', () => console.log('✓ Back online'));
-window.addEventListener('offline', () => console.log('⚠ Offline mode'));
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('✓ Offline support ready'))
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  }
+  window.addEventListener('online', () => console.log('✓ Back online'));
+  window.addEventListener('offline', () => console.log('⚠ Offline mode'));
 </script>
 
 </body>

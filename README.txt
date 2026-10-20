@@ -1,7 +1,20 @@
-BIBLE STUDY GROUP — Afaan Oromoo + Amharic Bible reader update
+BIBLE STUDY GROUP — APK-READY WEBSITE FOLDER
 
-Upload the three files in this folder to the SAME folder in your existing GitHub Pages repository, replacing index.html, manifest.json and sw.js. Keep the existing app folder/path.
+Files:
+- index.html: your app (existing Firebase configuration retained)
+- manifest.json: installable PWA settings
+- sw.js: app-shell offline cache; Bible chapters are cached by the app after successful reading
+- icon.svg: app icon
 
-The Bible reader now uses the selected language: English (KJV), Afaan Oromoo (Oromo), or Amharic (Amhara). Once a chapter successfully loads online, that chapter is saved in the browser's IndexedDB and can be read offline on that same device/browser. Chapters are cached as the user reads them; this does not pre-download the entire Bible.
+HOW TO USE
+1. Upload ALL files in this folder to the same folder/root of your GitHub Pages or Netlify site.
+2. Keep the filenames exactly as they are. Do not upload index.html alone.
+3. Open the deployed site using HTTPS, then reload it.
+4. To install as an app on Android, open the site in Chrome and use the browser menu > Install app / Add to Home screen.
+5. For a real APK, use a trusted PWA-to-APK wrapper (for example, PWABuilder) with the deployed HTTPS site URL.
 
-Important: Oromo/Amharic depend on the third-party Bible API documented at https://github.com/abdiu34567/Bible-Api. If that service is unavailable, first-time chapter downloads will fail; previously cached chapters remain available offline. This package was code-reviewed but the live API could not be reached from the build environment, so test Genesis 1 in all three languages after publishing.
+IMPORTANT NOTES
+- The original Firebase project configuration and app logic are retained; this package does not change Firebase security rules.
+- Bible chapters can be read offline only after each chapter has been successfully opened online and cached. The full Bible is not bundled offline.
+- Amharic reading now tries the Ethiopic Bible JSON dataset. Afaan Oromoo reading searches the connected Bible API catalog for a real Oromo version instead of assuming that "oro" is a valid version ID. If no Oromo version is published in that source, you will need to provide an authorized Afaan Oromoo Bible dataset/version; this package does not invent or substitute Bible text.
+- This single HTML app still uses Firebase and online fonts/API sources, so first-time loading and shared data require internet.
