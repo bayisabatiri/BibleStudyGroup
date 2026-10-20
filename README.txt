@@ -16,5 +16,5 @@ HOW TO USE
 IMPORTANT NOTES
 - The original Firebase project configuration and app logic are retained; this package does not change Firebase security rules.
 - Bible chapters can be read offline only after each chapter has been successfully opened online and cached. The full Bible is not bundled offline.
-- Amharic reading now tries the Ethiopic Bible JSON dataset. Afaan Oromoo reading searches the connected Bible API catalog for a real Oromo version instead of assuming that "oro" is a valid version ID. If no Oromo version is published in that source, you will need to provide an authorized Afaan Oromoo Bible dataset/version; this package does not invent or substitute Bible text.
+- Afaan Oromoo and Amharic chapter loading now uses the documented API versions `oromo` and `amhara`. The previous code used invalid WLD folder IDs (`oro`/`amh`), which caused both languages to fail. The API still needs an internet connection and its service must be online.
 - This single HTML app still uses Firebase and online fonts/API sources, so first-time loading and shared data require internet.

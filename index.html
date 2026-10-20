@@ -618,7 +618,6 @@ function tr(s){
 function setLanguage(lang){
   if(!T[lang]) return;
   currentLang = lang;
-  document.documentElement.lang = lang === 'om' ? 'om' : (lang === 'am' ? 'am' : 'en');
   localStorage.setItem(LANG_KEY, lang);
   render();
 }
@@ -1623,52 +1622,30 @@ async function readChapter(forceRefresh = false){
         verses = (data.verses || []).map(v => ({ num: v.verse, text: v.text }));
       }
     }catch(e){ console.warn('[Bible] bible-api.com failed', e); }
-  } else if(language === 'am') {
-    translationName = 'አማርኛ — የአማርኛ መጽሐፍ ቅዱስ';
-    // Load the Amharic/English structured Bible dataset, then cache each chapter locally.
-    try {
-      const dataUrl = 'https://raw.githubusercontent.com/biniama/ethiopic-bible-data/main/minified/bible_am_en.json';
-      const response = await fetch(dataUrl);
-      if(response.ok){
-        const bibleData = await response.json();
-        const books = Array.isArray(bibleData) ? bibleData : (bibleData.books || bibleData.data?.books || []);
-        const bookData = books.find(x => {
-          const candidates = [x.book_short_name_en, x.book_name_en, x.name, x.name_en, x.bookName, x.bookCode, x.code, x.id];
-          return candidates.some(n => String(n || '').toLowerCase() === book.toLowerCase() || String(n || '').toLowerCase() === bookId.toLowerCase());
-        });
-        const chapters = bookData?.chapters || [];
-        const chapterData = chapters.find(x => Number(x.chapter ?? x.number) === Number(chapter));
-        const rows = chapterData?.verses || chapterData?.data || [];
-        verses = rows.map(v => ({ num: v.verse ?? v.number, text: typeof v.text === 'string' ? v.text : (v.text?.am || v.text?.amh || '') })).filter(v => v.text);
-      }
-    } catch(e) { console.warn('[Bible] Amharic dataset failed', e); }
   } else {
-    translationName = 'Afaan Oromoo';
-    // Discover a real Oromo translation ID rather than assuming that "oro" is a version ID.
+    translationName = language === 'om'
+      ? 'Macaafa Qulqulluu Afaan Oromoo'
+      : 'መጽሐፍ ቅዱስ አማርኛ';
+
+    // Use the documented API version IDs and book IDs (e.g. oromo/GEN/1).
+    // The previous CDN paths did not match the required API format.
     try {
-      const catalogRes = await fetch(`${WLD_BASE}/bibles.json`);
-      if(catalogRes.ok){
-        const catalog = await catalogRes.json();
-        const entries = Array.isArray(catalog) ? catalog : (catalog.bibles || catalog.versions || catalog.data || []);
-        const candidates = entries.filter(x => {
-          const lang = String(x.language || x.languageCode || x.lang || x.iso || '').toLowerCase();
-          const id = String(x.id || x.version || x.code || '').toLowerCase();
-          const name = String(x.name || x.title || '').toLowerCase();
-          return /^(oro|orm|om)(-|$)/.test(id) || ['oro','orm','om'].includes(lang) || /oromo/.test(name);
-        });
-        const ids = [...new Set(candidates.map(x => x.id || x.version || x.code).filter(Boolean))];
-        for(const versionId of ids){
-          try {
-            const response = await fetch(`${WLD_BASE}/${encodeURIComponent(versionId)}/books/${bookSlug}/chapters/${chapter}.json`);
-            if(!response.ok) continue;
-            const data = await response.json();
-            const rows = Array.isArray(data.data) ? data.data : (Array.isArray(data.verses) ? data.verses : []);
-            const found = rows.map(v => ({num:v.verse ?? v.number, text:v.text})).filter(v => v.text);
-            if(found.length){ verses = found; translationName = candidates.find(x => (x.id || x.version || x.code) === versionId)?.name || 'Afaan Oromoo'; break; }
-          } catch(e) { console.warn('[Bible] Oromo candidate failed', versionId, e); }
-        }
+      const version = language === 'om' ? 'oromo' : 'amhara';
+      const url = `https://bible-api-kappa.vercel.app/api/v1/verses/${version}/${bookId}/${encodeURIComponent(chapter)}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Bible API returned HTTP ${res.status}`);
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data : data.data;
+      if (Array.isArray(rows)) {
+        verses = rows.map(v => ({
+          num: v.verseNum ?? v.verse ?? v.num,
+          text: v.verse ?? v.text
+        })).filter(v => v.text != null && String(v.text).trim() !== '');
       }
-    } catch(e) { console.warn('[Bible] Oromo version catalog failed', e); }
+      if (!verses.length) throw new Error('No verses returned by Bible API');
+    } catch(e) {
+      console.warn(`[Bible] ${language} chapter request failed`, e);
+    }
   }
 
   if(verses.length > 0 && verses.some(v => v.text)){
@@ -1685,7 +1662,7 @@ async function readChapter(forceRefresh = false){
         + stale.html);
     } else {
       const message =
-          language === 'om' ? 'Afaan Oromoo Bible data could not be found from the connected source. Connect to the internet and try again; if this continues, an authorized Afaan Oromoo Bible data file is needed.'
+          language === 'om' ? 'Afaan Oromoo verses could not be downloaded. Connect to the internet and try again.'
         : language === 'am' ? 'የአማርኛ መጽሐፍ ቅዱስ ጥቅሶችን ማምጣት አልተቻለም። ኢንተርኔት አገናኝተው እንደገና ይሞክሩ።'
         :                     'Could not load this chapter. Connect to the internet and try again.';
       showBibleModal(title,
