@@ -1,11 +1,17 @@
-Bible Study Group — Original APK Conversion Folder
+Bible Study Group — APK preparation folder
 
-IMPORTANT: index.html is the original file copied from the earlier upload. Its website code has not been edited.
+Contents
+- index.html: your original uploaded website file, copied without changing its contents.
+- manifest.json: installable PWA metadata.
+- sw.js: service worker for caching the app shell.
+- icons/: app icons.
 
-Files:
-- index.html: original website
-- manifest.json: app metadata for tools that support PWA packaging
+How to use
+1. Upload the CONTENTS of this folder to the same website folder/root (for example, the GitHub Pages or Netlify publish folder). Keep index.html, manifest.json, sw.js, and icons/ together.
+2. Open the hosted site over HTTPS and test it in Chrome on Android.
+3. To package as an Android APK, use a trusted PWA-to-APK/TWA builder or Android Studio with Bubblewrap, using the public HTTPS website URL.
 
-To convert to an Android APK, import the website into an Android WebView wrapper or a trusted website-to-APK builder. If the builder asks for a website URL, use your published website URL. If it supports local HTML assets, select index.html and include any required supporting files/assets.
-
-Note: This folder is prepared for APK conversion; it is not itself an installed APK. Website features that require internet or online services will still need internet unless they were already designed to work offline.
+Important
+- This folder prepares the website for installation and APK packaging; it does not itself contain a compiled APK.
+- The original HTML references Firebase and external Bible APIs. Online sign-in/data features and uncached Bible content still require internet. Service-worker caching alone does not make the entire app fully offline.
+- For a working installable PWA, the site must be hosted over HTTPS. Test the hosted app before generating the APK.
