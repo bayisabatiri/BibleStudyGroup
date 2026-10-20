@@ -1,20 +1,11 @@
 {
-  "id": "./",
   "name": "Bible Study Group",
   "short_name": "Bible Study",
-  "description": "Bible reading and study in English, Afaan Oromoo, and Amharic.",
+  "description": "Bible Study Group website packaged for Android app conversion.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f8f9fb",
-  "theme_color": "#dc2626",
   "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a"
 }
